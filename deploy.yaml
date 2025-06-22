@@ -1,0 +1,30 @@
+name: CI/CD Deploy to Kubernetes
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to DockerHub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build and Push Docker image
+        run: |
+          docker build -t your-dockerhub-user/myservice:latest .
+          docker push your-dockerhub-user/myservice:latest
+
+      - name: Notify ArgoCD to sync (si no tienes auto sync)
+        run: |
+          curl -k -X POST \
+            -H "Authorization: Bearer ${{ secrets.ARGOCD_TOKEN }}" \
+            https://argocd.yourdomain.com/api/v1/applications/myservice/sync
